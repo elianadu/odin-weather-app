@@ -1,7 +1,8 @@
-// import "./styles.css";
+import "./styles.css";
 
 function toCelsius(temp) {
-  return ((temp - 32) * 5) / 9;
+  let inF = ((temp - 32) * 5) / 9;
+  return Math.round(inF * 10) / 10;
 }
 
 async function getData(location, inCelsius) {
@@ -11,18 +12,19 @@ async function getData(location, inCelsius) {
     );
     let data = await response.json();
     let scaledData = {
-      icon: data.days[0].icon,
-      zeroTemp: data.days[0].temp,
-      zeroFeelsLikeTemp: data.days[0].feelslike,
-      zeroConditions: data.days[0].conditions,
-      oneTemp: data.days[1].temp,
-      twoTemp: data.days[2].temp,
-      threeTemp: data.days[3].temp,
-      fourTemp: data.days[4].temp,
+      icon0: await getWeatherIcon(data.days[0].icon),
+      temp0: data.days[0].temp,
+      tempFeelsLike0: data.days[0].feelslike,
+      desc0: data.days[0].conditions,
     };
+    for (let i = 1; i <= 4; i++) {
+      scaledData[`temp${i}`] = data.days[i].temp;
+      scaledData[`desc${i}`] = data.days[i].conditions;
+      scaledData[`icon${i}`] = await getWeatherIcon(data.days[i].icon);
+    }
     if (inCelsius) {
-      for (let key of scaledData) {
-        if (key.endsWith("Temp")) {
+      for (let key in scaledData) {
+        if (key.startsWith("temp")) {
           scaledData[key] = toCelsius(scaledData[key]);
         }
       }
@@ -35,30 +37,36 @@ async function getData(location, inCelsius) {
 }
 
 async function display() {
-  let searchBar = document.querySelector(".search-bar");
+  let searchBar = document.querySelector(".search-bar input");
   let location = searchBar.value;
-  let scaleBtn = document.querySelector(".scale-btn");
+  let scaleBtn = document.querySelector(".scale-btn input");
   let inCelsius = scaleBtn.checked;
   let weatherData = await getData(location, inCelsius);
 
+  function displayToday(temp, feelsLike, desc, message, icon) {
+    let scale = inCelsius ? "C" : "F";
+    let content = document.querySelector(".today");
+    content.querySelector(".temp").textContent = `${temp}°${scale}`;
+    content.querySelector(".feels-like").textContent = `Feels like ${feelsLike}`;
+    content.querySelector(".desc").textContent = desc;
+    content.querySelector(".message").textContent = message;
+    content.querySelector(".icon").src = icon;
+  }
+
+  function displayFutureDay(temp, desc, icon, dayNum) {
+    let content = document.querySelector(`.day-${dayNum}`);
+    let scale = inCelsius ? "C" : "F";
+    content.querySelector(".temp").textContent = `${temp}°${scale}`;
+    content.querySelector(".desc").textContent = desc;
+    content.querySelector(".icon").src = icon;
+
+  }
+
   if (weatherData !== "error") {
-    let icon = await getWeatherIcon(weatherData.icon);
-    const iconImg = document.getElementById("icon");
-    if (icon !== "error") {
-      console.log(icon);
-      iconImg.src = icon;
-    } else {
-      iconImg.src = "data:,";
+    displayToday(weatherData.temp0, weatherData.tempFeelsLike0, weatherData.desc0, "my message", weatherData.icon0);
+    for (let i = 1; i <= 4; i++) {
+      displayFutureDay(weatherData[`temp${i}`], weatherData[`desc${i}`], weatherData[`icon${i}`], i);
     }
-
-    const temp = document.getElementById("temp");
-    temp.textContent = `Temperature: ${weatherData.zeroTemp}`;
-
-    const feelsLike = document.getElementById("feels-like");
-    feelsLike.textContent = `Feels like: ${weatherData.zeroFeelsLikeTemp}`;
-
-    const desc = document.getElementById("desc");
-    desc.textContent = `Description: ${weatherData.zeroConditions}`;
   } else {
     searchBar.setCustomValidity("Please enter a valid location");
     searchBar.reportValidity();
@@ -71,7 +79,7 @@ async function getWeatherIcon(iconName) {
     return icon.default;
   } catch (error) {
     console.log(error);
-    return "error";
+    return "data:,";
   }
 }
 
@@ -80,3 +88,11 @@ searchBtn.addEventListener("click", (e) => {
   e.preventDefault();
   display();
 });
+
+let scaleBtn = document.querySelector(".scale-btn input");
+scaleBtn.addEventListener("click", () => {
+  display();
+});
+
+function displayFrontPage() {
+}

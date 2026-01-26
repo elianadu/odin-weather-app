@@ -1,0 +1,22 @@
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+main {
+    align-self: center;
+    width: max(500px, 80vw);
+    display: grid;
+    grid-template-rows: repeat(4, 1fr);
+    grid-template-columns: 1fr 1fr; 
+    .today {
+        grid-row: 1 / -1;
+        height: 100;
+    }
+}
